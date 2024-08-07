@@ -51,7 +51,7 @@ public:
     return pthread_cond_timedwait(&cond_, mutex, &t) == 0;
   }
   bool signal() { return pthread_cond_signal(&cond_) == 0; }
-  bool boradcast() { return pthread_cond_broadcast(&cond_) == 0; }
+  bool broadcast() { return pthread_cond_broadcast(&cond_) == 0; }
 
 private:
   pthread_cond_t cond_;
