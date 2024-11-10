@@ -34,45 +34,45 @@ private:
   void *async_write_log() {
     std::string single_log;
     // TODO improve performance by using move assignment
-    while (log_queue_->pop(single_log)) {
-      mutex_.lock();
-      fputs(single_log.c_str(), fp_);
-      mutex_.unlock();
+    while (m_log_queue->pop(single_log)) {
+      m_mutex.lock();
+      fputs(single_log.c_str(), m_fp);
+      m_mutex.unlock();
     }
     return NULL;
   }
 
-  char dir_name_[128];
-  char log_name_[128];
-  int split_lines_;
-  int log_buf_size_;
-  long long count_;
-  int today_;
-  FILE *fp_;
-  char *buf_;
-  Block_queue<std::string> *log_queue_;
-  bool is_async_;
-  Locker mutex_;
-  int close_log_;
+  char m_dir_name[128];
+  char m_log_name[128];
+  int m_split_lines;
+  int m_log_buf_size;
+  long long m_count;
+  int m_today;
+  FILE *m_fp;
+  char *m_buf;
+  Block_queue<std::string> *m_log_queue;
+  bool m_is_async;
+  Locker m_mutex;
+  int m_close_log;
 };
 
 #define LOG_DEBUG(format, ...)                                                 \
-  if (close_log_ == 0) {                                                       \
+  if (m_close_log == 0) {                                                      \
     Log::get_instance()->write_log(0, format, ##__VA_ARGS__);                  \
     Log::get_instance()->flush();                                              \
   }
 #define LOG_INFO(format, ...)                                                  \
-  if (close_log_ == 0) {                                                       \
+  if (m_close_log == 0) {                                                      \
     Log::get_instance()->write_log(1, format, ##__VA_ARGS__);                  \
     Log::get_instance()->flush();                                              \
   }
 #define LOG_WARN(format, ...)                                                  \
-  if (close_log_ == 0) {                                                       \
+  if (m_close_log == 0) {                                                      \
     Log::get_instance()->write_log(2, format, ##__VA_ARGS__);                  \
     Log::get_instance()->flush();                                              \
   }
 #define LOG_ERROR(format, ...)                                                 \
-  if (close_log_ == 0) {                                                       \
+  if (m_close_log == 0) {                                                      \
     Log::get_instance()->write_log(3, format, ##__VA_ARGS__);                  \
     Log::get_instance()->flush();                                              \
   }

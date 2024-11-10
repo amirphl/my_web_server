@@ -1,2 +1,11 @@
 CompileFlags:
-  CompilationDatabase: "cmake"
+  CompilationDatabase: build
+Style:
+  ColumnLimit: 200
+
+Diagnostics:
+  ClangTidy:
+    Add:
+      - readability-*
+    CheckOptions:
+      readability-line-length.LineLength: 200

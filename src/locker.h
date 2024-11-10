@@ -39,21 +39,21 @@ private:
 class Cond {
 public:
   Cond() {
-    if (pthread_cond_init(&cond_, NULL) != 0) {
+    if (pthread_cond_init(&m_cond, NULL) != 0) {
       throw std::exception();
     }
   }
-  ~Cond() { pthread_cond_destroy(&cond_); }
+  ~Cond() { pthread_cond_destroy(&m_cond); }
   bool wait(pthread_mutex_t *mutex) {
-    return pthread_cond_wait(&cond_, mutex) == 0;
+    return pthread_cond_wait(&m_cond, mutex) == 0;
   }
   bool timewait(pthread_mutex_t *mutex, struct timespec t) {
-    return pthread_cond_timedwait(&cond_, mutex, &t) == 0;
+    return pthread_cond_timedwait(&m_cond, mutex, &t) == 0;
   }
-  bool signal() { return pthread_cond_signal(&cond_) == 0; }
-  bool broadcast() { return pthread_cond_broadcast(&cond_) == 0; }
+  bool signal() { return pthread_cond_signal(&m_cond) == 0; }
+  bool broadcast() { return pthread_cond_broadcast(&m_cond) == 0; }
 
 private:
-  pthread_cond_t cond_;
+  pthread_cond_t m_cond;
 };
 #endif
