@@ -9,116 +9,116 @@
 
 template <class T> class Block_queue {
 public:
-  Block_queue(int max_size = 1000) : max_size_(max_size) {
+  Block_queue(int max_size = 1000) : m_max_size(max_size) {
     if (max_size <= 0) {
       exit(-1);
     }
 
-    array_ = new T[max_size];
-    front_ = back_ = -1;
+    m_array = new T[max_size];
+    m_front = m_back = -1;
   }
 
   ~Block_queue() {
     // TODO Destroyed concurrently by multiple threads?
-    mutex_.lock();
-    if (array_ != NULL) {
-      delete[] array_;
+    m_mutex.lock();
+    if (m_array != NULL) {
+      delete[] m_array;
     }
-    mutex_.unlock();
+    m_mutex.unlock();
   }
 
   void clear() {
-    mutex_.lock();
-    front_ = back_ = -1;
-    mutex_.unlock();
+    m_mutex.lock();
+    m_front = m_back = -1;
+    m_mutex.unlock();
   }
 
   int size() {
-    mutex_.lock();
+    m_mutex.lock();
     int s;
-    if (back_ == -1) {
+    if (m_back == -1) {
       s = 0;
-    } else if (back_ >= front_) {
-      s = back_ - front_ + 1;
+    } else if (m_back >= m_front) {
+      s = m_back - m_front + 1;
     } else {
-      s = max_size_ - (front_ - back_ - 1);
+      s = m_max_size - (m_front - m_back - 1);
     }
-    mutex_.unlock();
+    m_mutex.unlock();
     return s;
   }
 
   bool full() {
-    mutex_.lock();
-    bool full = size() == max_size_;
-    mutex_.unlock();
+    m_mutex.lock();
+    bool full = size() == m_max_size;
+    m_mutex.unlock();
     return full;
   }
 
   bool empty() {
-    mutex_.lock();
+    m_mutex.lock();
     bool empty = size() == 0;
-    mutex_.unlock();
+    m_mutex.unlock();
     return empty;
   }
 
   bool front(T &val) {
-    mutex_.lock();
+    m_mutex.lock();
     if (empty()) {
-      mutex_.unlock();
+      m_mutex.unlock();
       return false;
     }
-    val = array_[front_]; // TODO copy or move?
-    mutex_.unlock();
+    val = m_array[m_front]; // TODO copy or move?
+    m_mutex.unlock();
     return true;
   }
 
   bool back(T &val) {
-    mutex_.lock();
+    m_mutex.lock();
     if (full()) {
-      mutex_.unlock();
+      m_mutex.unlock();
       return false;
     }
-    val = array_[back_]; // TODO copy or move?
-    mutex_.unlock();
+    val = m_array[m_back]; // TODO copy or move?
+    m_mutex.unlock();
     return true;
   }
 
   bool push(const T &item) {
-    mutex_.lock();
+    m_mutex.lock();
     if (full()) {
-      cond_.broadcast(); // TODO What if waiting for consumer signal on cond?
-      mutex_.unlock();
+      m_cond.broadcast(); // TODO What if waiting for consumer signal on cond?
+      m_mutex.unlock();
       return false;
     }
-    int64_t next = back_; // 64bit for preventing overflow
-    next = (next + 1) % max_size_;
-    array_[next] = item; // TODO copy or move?
-    back_ = next;
-    if (front_ == -1) {
-      front_ = back_;
+    int64_t next = m_back; // 64bit for preventing overflow
+    next = (next + 1) % m_max_size;
+    m_array[next] = item; // TODO copy or move?
+    m_back = next;
+    if (m_front == -1) {
+      m_front = m_back;
     }
-    cond_.broadcast();
-    mutex_.unlock();
+    m_cond.broadcast();
+    m_mutex.unlock();
     return true;
   }
 
   bool pop(T &item) {
-    mutex_.lock();
+    m_mutex.lock();
     while (empty()) {
-      if (!cond_.wait(mutex_.get())) { // TODO
-        mutex_.unlock();
+      if (!m_cond.wait(m_mutex.get())) { // TODO
+        m_mutex.unlock();
         return false;
       }
     }
-    item = array_[front_];
-    if (front_ == back_) {
-      front_ = back_ = -1;
+    item = m_array[m_front];
+    if (m_front == m_back) {
+      m_front = m_back = -1;
     } else {
-      int64_t next = front_;
-      next = (next + 1) % max_size_;
-      front_ = next;
+      int64_t next = m_front;
+      next = (next + 1) % m_max_size;
+      m_front = next;
     }
-    mutex_.unlock();
+    m_mutex.unlock();
     return true;
   }
 
@@ -126,38 +126,38 @@ public:
     struct timespec t = {0, 0};
     struct timeval now = {0, 0};
     gettimeofday(&now, NULL);
-    mutex_.lock();
+    m_mutex.lock();
     if (empty()) {
       t.tv_sec = now.tv_sec + ms_timeout / 1000;
       t.tv_nsec = (ms_timeout % 1000) * 1000;
-      if (!cond_.timewait(mutex_.get(), t)) { // TODO
-        mutex_.unlock();
+      if (!m_cond.timewait(m_mutex.get(), t)) { // TODO
+        m_mutex.unlock();
         return false;
       }
     }
     if (empty()) {
-      mutex_.unlock();
+      m_mutex.unlock();
       return false;
     }
-    item = array_[front_];
-    if (front_ == back_) {
-      front_ = back_ = -1;
+    item = m_array[m_front];
+    if (m_front == m_back) {
+      m_front = m_back = -1;
     } else {
-      int64_t next = front_;
-      next = (next + 1) % max_size_;
-      front_ = next;
+      int64_t next = m_front;
+      next = (next + 1) % m_max_size;
+      m_front = next;
     }
-    mutex_.unlock();
+    m_mutex.unlock();
     return true;
   }
 
 private:
-  Locker mutex_;
-  Cond cond_;
-  T *array_;
-  int front_;
-  int back_;
-  const int max_size_;
+  Locker m_mutex;
+  Cond m_cond;
+  T *m_array;
+  int m_front;
+  int m_back;
+  const int m_max_size;
 };
 
 #endif
